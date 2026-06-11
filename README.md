@@ -18,7 +18,7 @@
 
 - **[2026-06-11]** We open-sourced the inference code and model weights of the full Bernini (**Bernini**) on [ByteDance/Bernini-Diffusers](https://huggingface.co/ByteDance/Bernini-Diffusers).
 - **[2026-06-09]** We open-sourced the **1.3B** weights of the Bernini Renderer (**Bernini-R**) on [ByteDance/Bernini-R-1.3B-Diffusers](https://huggingface.co/ByteDance/Bernini-R-1.3B-Diffusers). Fine-tuned from Wan2.1-1.3B, the model performs close to the 14B variant on simple tasks such as style transfer, subtitle or watermark removal, and local editing, while lagging behind on more complex tasks such as human generation.
-- **[2026-06-01]** We open-sourced the inference code and model weights of the Bernini Renderer (**Bernini-R**).
+- **[2026-06-01]** We open-sourced the inference code and model weights of the Bernini Renderer (**Bernini-R**) on [ByteDance/Bernini-R-Diffusers](https://huggingface.co/ByteDance/Bernini-R-Diffusers).
 - **[2026-05-22]** We released our paper [Bernini: Latent Semantic Planning for Video Diffusion](https://arxiv.org/abs/2605.22344).
 
 ## ✨ Highlights
