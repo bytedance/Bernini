@@ -54,19 +54,10 @@ export BERNINI_CONFIG=/path/to/Bernini-Diffusers
 > [Installation](../README.md#-installation), which includes the required
 > VeOmni install.
 
-For single-GPU image tasks, use `infer_single_gpu.py`; for video tasks, use
-`infer_multi_gpu.py` with `torchrun` and `--ulysses` sequence parallelism:
-
-```bash
-# Single-GPU image editing
-python infer_single_gpu.py --config ByteDance/Bernini-Diffusers \
-    --case assets/testcases/i2i/i2i.json --num_frames 1
-
-# Multi-GPU video editing
-torchrun --nproc-per-node 8 infer_multi_gpu.py \
-    --config ByteDance/Bernini-Diffusers --ulysses 8 \
-    --case assets/testcases/v2v/v2v_case1.json
-```
+The recommended way to run Bernini is through the ready-to-run launch scripts
+under [`scripts/bernini/`](../scripts/bernini/). These scripts wrap the
+single-GPU image path and the multi-GPU video path with the appropriate default
+case files, sampling hyperparameters, and Ulysses sequence-parallel settings.
 
 Inputs are described by case files under
 [`assets/testcases/`](../assets/testcases/); see the

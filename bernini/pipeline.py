@@ -917,7 +917,7 @@ class BerniniPipeline:
         system_prompt: str = "",
         output_path: str = "output.mp4",
         write_output: bool = True,
-        use_truncate: bool = True,
+        use_truncate: bool = False,
         max_sequence_length: int = 512,
     ):
         """Generate one clip and write it to `output_path`.
