@@ -340,7 +340,7 @@ def bernini_process_sample(
             vae_emb = torch.load(buffer)
             _, _, t, h, w = vae_emb.shape
             video_vae_shape.append([t, h, w])
-            vae_emb = DiagonalGaussianDistribution(vae_emb).sample()
+            vae_emb = DiagonalGaussianDistribution(vae_emb).mode()
             vae_emb = vae_emb.squeeze(0)
             vae_emb = (vae_emb - vae_latent_mean) / vae_latent_std
             video_vae_latents.append(vae_emb)
