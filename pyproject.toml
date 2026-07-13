@@ -1,19 +1,17 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "bernini"
 version = "0.1.0"
-description = "Bernini: unified video / image generation and editing inference (Wan2.2-based)"
-readme = "README.md"
-# Open-VeOmni (a required dependency) needs Python 3.11.
-requires-python = ">=3.11"
-license = { file = "LICENSE" }
+description = "Bernini training & inference environment"
+requires-python = ">=3.11,<3.12"
 
+# ---- Core (required) ----
 dependencies = [
-    "torch>=2.4.0",
+    "torch==2.7.1",
+    "torchvision==0.22.1",
+    "torchcodec==0.3.0",
     "diffusers==0.35.2",
+    # diffusers needs accelerate for the low_cpu_mem_usage load path, which is
+    # mandatory for the Wan2.2 transformer (it keeps fp32-sensitive modules).
     "accelerate==0.34.2",
     "transformers==4.57.3",
     "safetensors",
@@ -22,18 +20,55 @@ dependencies = [
     "Pillow",
     "tqdm",
     "ftfy",
+    "ninja",
+    "torchdata==0.11.0",
+
+    # Training with the vendored VeOmni v0.1.11 code also requires datasets/PyYAML.
+    "datasets==2.21.0",
+    "PyYAML",
+    "librosa",
+    "av",
+
+    # ---- Video / image I/O ----
     "decord",
     "imageio",
     "imageio-ffmpeg",
-    # Required by all inference paths (incl. single-GPU). When the torch build
-    # matters (e.g. a pinned CUDA wheel), install it manually with --no-deps
-    # instead -- see requirements.txt.
-    "veomni",
 ]
 
 [project.optional-dependencies]
-# Prompt engineering via an OpenAI-compatible endpoint.
-pe = ["openai"]
+# Prompt engineering (recommended): powers --use_pe via an OpenAI-compatible
+# endpoint. The v1 SDK API (`from openai import OpenAI`) is required.
+pe = ["openai>=1.0"]
 
-[tool.setuptools.packages.find]
-include = ["bernini*"]
+# Gradio demo: powers gradio_demo.py (in-browser UI on top of Bernini).
+demo = ["gradio==6.15.0"]
+
+# Multi-GPU sequence parallel (Ulysses) needs Open-VeOmni (Apache-2.0, Py 3.11).
+# Single-GPU inference does NOT need this.
+veomni = ["veomni==0.1.11"]
+
+# flash-attn requires torch present at build time and --no-build-isolation,
+# so it is NOT listed here. Install it separately (see notes below).
+
+# Convenience meta-group: everything except flash-attn / FA3.
+all = [
+    "openai>=1.0",
+    "gradio==6.15.0",
+    "veomni==0.1.11",
+]
+
+# ============================================================
+#  uv-specific config: route torch stack to the PyTorch index
+# ============================================================
+[tool.uv]
+# Restrict the PyTorch CUDA index to the torch packages so it does not affect
+# resolution of unrelated dependencies.
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
+veomni = { git = "https://github.com/ByteDance-Seed/VeOmni.git", tag = "v0.1.11" }

@@ -20,7 +20,6 @@ dependency on it.
 """
 
 import torch
-import torch.distributed as dist
 import torch.nn.functional as F
 
 from .state import get_parallel_state
@@ -30,86 +29,56 @@ def gather_seq_scatter_heads(x, seq_dim, head_dim, unpadded_dim_size=0):
     """All-to-all: gather the sequence dim, scatter the head dim."""
     if not get_parallel_state().ulysses_enabled:
         return x
-    ps = get_parallel_state()
-    x = _all_to_all_tensor(x, scatter_dim=head_dim, gather_dim=seq_dim, group=ps.ulysses_group)
-    if unpadded_dim_size and unpadded_dim_size % ps.ulysses_size != 0:
-        x = unpad_tensor(x, dim=seq_dim, padding_size=x.size(seq_dim) - unpadded_dim_size)
-    return x
+    from veomni.distributed.sequence_parallel import gather_seq_scatter_heads as _f
+
+    return _f(x, seq_dim=seq_dim, head_dim=head_dim, unpadded_dim_size=unpadded_dim_size)
 
 
 def gather_heads_scatter_seq(x, head_dim, seq_dim):
     """All-to-all: gather the head dim, scatter the sequence dim."""
     if not get_parallel_state().ulysses_enabled:
         return x
-    ps = get_parallel_state()
-    dim_size = x.size(seq_dim)
-    if dim_size % ps.ulysses_size != 0:
-        x = pad_tensor(x, seq_dim, ps.ulysses_size - (dim_size % ps.ulysses_size))
-    return _all_to_all_tensor(x, scatter_dim=seq_dim, gather_dim=head_dim, group=ps.ulysses_group)
+    from veomni.distributed.sequence_parallel import gather_heads_scatter_seq as _f
+
+    return _f(x, head_dim=head_dim, seq_dim=seq_dim)
 
 
 def slice_input_tensor(x, dim):
     """Keep only this rank's slice of `x` along `dim`."""
     if not get_parallel_state().ulysses_enabled:
         return x
-    ps = get_parallel_state()
-    return x.tensor_split(ps.ulysses_size, dim=dim)[ps.ulysses_rank].contiguous()
+    from veomni.distributed.sequence_parallel import slice_input_tensor as _f
+
+    return _f(x, dim=dim)
 
 
 def slice_input_tensor_scale_grad(x, dim):
     """`slice_input_tensor` variant used inside autograd-tracked code paths."""
-    return slice_input_tensor(x, dim=dim)
+    if not get_parallel_state().ulysses_enabled:
+        return x
+    from veomni.distributed.sequence_parallel import slice_input_tensor_scale_grad as _f
+
+    return _f(x, dim=dim)
 
 
 def gather_outputs(x, gather_dim, padding_dim=None, unpad_dim_size=None, group=None):
     """Gather a sequence-sharded tensor back to its full length."""
     if not get_parallel_state().ulysses_enabled:
         return x
-    group = get_parallel_state().ulysses_group if group is None else group
-    world = dist.get_world_size(group)
-    outputs = [torch.empty_like(x) for _ in range(world)]
-    dist.all_gather(outputs, x.contiguous(), group=group)
-    out = torch.cat(outputs, dim=gather_dim).contiguous()
-    if padding_dim is not None and unpad_dim_size is not None and out.size(padding_dim) > unpad_dim_size:
-        slc = [slice(None)] * out.ndim
-        slc[padding_dim] = slice(0, unpad_dim_size)
-        out = out[slc].contiguous()
-    return out
+    from veomni.distributed.sequence_parallel import gather_outputs as _f
+
+    return _f(x, gather_dim=gather_dim, padding_dim=padding_dim, unpad_dim_size=unpad_dim_size)
 
 
 def padding_tensor_for_seqeunce_parallel(x, dim):
     """Pad `x` along `dim` so its size is divisible by the Ulysses world size."""
     if not get_parallel_state().ulysses_enabled:
         return x
-    ps = get_parallel_state()
-    remainder = x.size(dim) % ps.ulysses_size
-    if remainder == 0:
-        return x
-    return pad_tensor(x, dim=dim, padding_size=ps.ulysses_size - remainder)
+    from veomni.distributed.sequence_parallel.utils import (
+        padding_tensor_for_seqeunce_parallel as _f,
+    )
 
-
-def _all_to_all_tensor(x, scatter_dim, gather_dim, group):
-    world = dist.get_world_size(group)
-    if scatter_dim <= 1 and gather_dim <= 1:
-        if scatter_dim != 0:
-            gather_dim_bef = x.shape[gather_dim]
-            scatter_dim_bef = x.shape[scatter_dim]
-            x = (
-                x.reshape([gather_dim_bef, world, scatter_dim_bef // world] + list(x.shape[2:]))
-                .transpose(0, 1)
-                .reshape([gather_dim_bef * world, scatter_dim_bef // world] + list(x.shape[2:]))
-                .contiguous()
-            )
-        output = torch.empty_like(x)
-        dist.all_to_all_single(output, x.contiguous(), group=group)
-        if scatter_dim == 0:
-            output = torch.cat(output.split(x.size(0) // world), dim=gather_dim)
-        return output.contiguous()
-
-    input_list = [t.contiguous() for t in torch.tensor_split(x, world, scatter_dim)]
-    output_list = [torch.empty_like(input_list[0]) for _ in range(world)]
-    dist.all_to_all(output_list, input_list, group=group)
-    return torch.cat(output_list, dim=gather_dim).contiguous()
+    return _f(x, dim=dim)
 
 
 def pad_tensor(x, dim, padding_size, padding_value=0):

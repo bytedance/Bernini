@@ -382,7 +382,7 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin):
     the matching `rotary_emb` and per-sample `cu_seqlens` metadata.
     """
 
-    _supports_gradient_checkpointing = False
+    _supports_gradient_checkpointing = True
     _skip_layerwise_casting_patterns = ["patch_embedding", "condition_embedder", "norm"]
     _no_split_modules = ["WanTransformerBlock"]
     _keep_in_fp32_modules = ["time_embedder", "scale_shift_table", "norm1", "norm2", "norm3"]
@@ -441,6 +441,7 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin):
         self.norm_out = FP32LayerNorm(inner_dim, eps, elementwise_affine=False)
         self.proj_out = nn.Linear(inner_dim, out_channels * math.prod(patch_size))
         self.scale_shift_table = nn.Parameter(torch.randn(1, 2, inner_dim) / inner_dim**0.5)
+        self.gradient_checkpointing = False
 
     def patch_vae_latent(self, hidden_states: torch.Tensor, source_id=None):
         """Patch-embed a VAE latent `[B,C,T,H,W]` into tokens, with its rotary emb."""
@@ -500,9 +501,8 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin):
             ) = gen_cu_seqlens_for_cross_attn(
                 origin_hidden_states_seq_len, batch_image_vae_seqlen, text_features_length, device=device
             )
-            encoder_hidden_states = encoder_hidden_states[
-                :, cu_seqlens_k_cross_cache[0] : cu_seqlens_k_cross_cache[-1], :
-            ]
+            # shape of encoder_hidden_states: [1, seqlen, hidden_size]
+            encoder_hidden_states = encoder_hidden_states[:, cu_seqlens_k_cross_cache[0]:cu_seqlens_k_cross_cache[-1], :]
             cu_seqlens_k_cross_cache = cu_seqlens_k_cross_cache - cu_seqlens_k_cross_cache[0]
         else:
             cu_seqlens_k_cross_cache = torch.zeros(
@@ -561,11 +561,18 @@ class WanTransformer3DModel(ModelMixin, ConfigMixin):
             batch_image_vae_seqlen, text_features_length, timestep_proj_indices, temb,
         )
 
-        for block in self.blocks:
-            hidden_states = block(
-                hidden_states, encoder_hidden_states, timestep_proj, rotary_emb,
-                batch_image_vae_seqlen, text_features_length, **kwargs,
-            )
+        if torch.is_grad_enabled() and self.gradient_checkpointing:
+            for block in self.blocks:
+                hidden_states = self._gradient_checkpointing_func(
+                    block, hidden_states, encoder_hidden_states, timestep_proj, rotary_emb,
+                    batch_image_vae_seqlen, text_features_length, **kwargs,
+                )
+        else:
+            for block in self.blocks:
+                hidden_states = block(
+                    hidden_states, encoder_hidden_states, timestep_proj, rotary_emb,
+                    batch_image_vae_seqlen, text_features_length, **kwargs,
+                )
 
         # Output norm, projection.
         shift_table, scale_table = self.scale_shift_table.float().chunk(2, dim=1)

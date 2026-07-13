@@ -147,13 +147,16 @@ class GEN_Wanx22(nn.Module):
         self.transformer_config_path = getattr(config, "transformer_config_path", None)
         self.transformer_2_config_path = getattr(config, "transformer_2_config_path", None)
 
+        # Load every submodule at the same dtype as the parent model so FSDP2 sees
+        # a uniform parameter dtype. With mixed precision the model is built in fp32
+        # (config.dtype) and FSDP casts to bf16 at compute time.
+        model_dtype = getattr(config, "dtype", None) or torch.bfloat16
         common = dict(
             use_src_id_rotary_emb=config.use_src_id_rotary_emb,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=model_dtype,
         )
-        # from_pretrained loads the Wan2.2 base transformer (bf16, with the
-        # precision-sensitive modules kept in fp32); the Bernini checkpoint is
-        # applied afterwards by bernini.weights.load_weights.
+        scratch = getattr(config, "scratch", False)
+
         if config.skip_transformer_1:
             self.transformer = None
         else:
@@ -216,6 +219,50 @@ class GEN_Wanx22(nn.Module):
             batch_image_vae_seqlen=batch_vae_seqlen,
             text_features_length=batch_text_seqlen,
         ).sample
+
+    def forward(
+        self,
+        input_vae_latents,
+        input_vae_rope,
+        vae_latents_mask,
+        vae_seqlen,
+        text_embs,
+        batch_text_seqlen,
+        timesteps,
+        target_velocity,
+    ):
+        # Training trains a single expert: which one is selected by the
+        # skip_transformer_1/skip_transformer_2 config (the skipped expert is
+        # None). Do not route by the per-batch mean timestep, which would
+        # mis-route packed samples spanning the noise boundary.
+        if self.transformer is not None and self.transformer_2 is not None:
+            raise ValueError(
+                "Dual-expert training expects exactly one expert; skip the other "
+                "via skip_transformer_1 or skip_transformer_2 in the model config."
+            )
+        if self.transformer_2 is None:
+            model_id = "transformer_1"
+            cur_transformer = self.transformer
+        else:
+            model_id = "transformer_2"
+            cur_transformer = self.transformer_2
+
+        input_vae_latents = input_vae_latents.unsqueeze(0)
+        input_vae_latents = cur_transformer.patch_embedding(input_vae_latents.squeeze(0)).flatten(1).unsqueeze(0)
+        input_vae_rope = input_vae_rope.permute(1, 0, 2).unsqueeze(0)
+        target_velocity = rearrange(target_velocity.unsqueeze(0), "b n c pt ph pw -> b n (pt ph pw c)")
+        target_indices = vae_latents_mask.squeeze(0).nonzero().squeeze(-1)
+
+        model_pred = self.shared_step(
+            model_id=model_id,
+            noisy_latents=input_vae_latents,
+            timesteps=timesteps.squeeze(0),
+            cond_embeds=text_embs,
+            rotary_embs=input_vae_rope,
+            batch_vae_seqlen=vae_seqlen.squeeze(0).tolist(),
+            batch_text_seqlen=batch_text_seqlen,
+        )[:, target_indices, :]
+        return (model_pred - target_velocity) ** 2
 
     def _apg_sigma(self, t_idx: int):
         """Noise level at the current step, for converting v-pred to x-pred."""
