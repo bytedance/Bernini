@@ -16,6 +16,7 @@
 
 ## 🎉 News
 
+- **[2026-07-13]** We released the training code of the Bernini Renderer (**Bernini-R**). See [docs/bernini_r_train.md](docs/bernini_r_train.md) for the full training guide.
 - **[2026-06-11]** We open-sourced the inference code and model weights of the full Bernini (**Bernini**) on [ByteDance/Bernini-Diffusers](https://huggingface.co/ByteDance/Bernini-Diffusers).
 - **[2026-06-09]** We open-sourced the **1.3B** weights of the Bernini Renderer (**Bernini-R**) on [ByteDance/Bernini-R-1.3B-Diffusers](https://huggingface.co/ByteDance/Bernini-R-1.3B-Diffusers). Fine-tuned from Wan2.1-1.3B, the model performs close to the 14B variant on simple tasks such as style transfer, subtitle or watermark removal, and local editing, while lagging behind on more complex tasks such as human generation.
 - **[2026-06-01]** We open-sourced the inference code and model weights of the Bernini Renderer (**Bernini-R**) on [ByteDance/Bernini-R-Diffusers](https://huggingface.co/ByteDance/Bernini-R-Diffusers).
@@ -63,9 +64,9 @@ Both families share the same task interface: `t2i`, `i2i`, `t2v`, `v2v`,
 - **Python** 3.11.2.
 - **CUDA GPU** — a Hopper GPU (H100/H800/H200) is recommended so FlashAttention-3
   can be used; other CUDA GPUs fall back to FlashAttention-2 or PyTorch SDPA.
-- **CUDA toolkit** 12.4 (matches the pinned `torch==2.5.1+cu124`; 12.3+ is the
+- **CUDA toolkit** 12.6 (matches the pinned `torch==2.7.1+cu126`; 12.3+ is the
   minimum if you build FlashAttention-3).
-- Pinned in `requirements.txt`: `torch==2.5.1+cu124`, `diffusers==0.35.2`,
+- Pinned in `requirements.txt`: `torch==2.7.1+cu126`, `diffusers==0.35.2`,
   `accelerate==0.34.2`, `transformers==4.57.3`.
 
 Reference environment (developed and tested on this setup):
@@ -73,23 +74,45 @@ Reference environment (developed and tested on this setup):
 | Component | Version      |
 |-----------|--------------|
 | GPU       | NVIDIA H100  |
-| CUDA      | 12.4         |
+| CUDA      | 12.6         |
 | Python    | 3.11.2       |
-| PyTorch   | 2.5.1+cu124  |
+| PyTorch   | 2.7.1+cu126  |
 
-### Install
+### Install (Inference)
 
 ```bash
 git clone https://github.com/bytedance/Bernini.git bernini && cd bernini
 pip install -r requirements.txt
 # Open-VeOmni is required. Install it with --no-deps so it does not pull in a
-# different torch build and override the pinned torch==2.5.1+cu124:
-pip install --no-deps git+https://github.com/ByteDance-Seed/VeOmni.git@v0.1.10
+# different torch build and override the pinned torch==2.7.1+cu126:
+pip install --no-deps git+https://github.com/ByteDance-Seed/VeOmni.git@v0.1.11
 ```
 
 [Open-VeOmni](https://github.com/ByteDance-Seed/VeOmni) (Apache-2.0,
 Python 3.11) is a **required** dependency — all inference paths import it,
 including single-GPU.
+
+### Install (Training)
+
+For training, we recommend using [uv](https://docs.astral.sh/uv/) to manage the
+Python environment. The `pyproject.toml` declares all training dependencies and
+routes `torch` / `torchvision` to the correct CUDA index automatically.
+
+```bash
+# Install uv (if not yet installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create .venv and install all dependencies
+uv sync
+uv sync --extra all
+# flash-attn requires --no-build-isolation
+uv pip install --no-build-isolation "flash-attn==2.8.3"
+```
+
+`uv sync` automatically creates and uses `.venv`. You can either activate it
+with `source .venv/bin/activate`, or run commands inside it via `uv run <cmd>`.
+See [docs/bernini_r_train.md](docs/bernini_r_train.md) for the full training
+guide.
 
 Optional extras:
 

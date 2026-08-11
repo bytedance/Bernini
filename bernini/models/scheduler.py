@@ -43,8 +43,9 @@ class FlowMatchScheduler:
         num_inference_steps: int = 100,
         denoising_strength: float = 1.0,
         shift: float = None,
-        device=None,
+        device: str = None,
         dtype: torch.dtype = torch.bfloat16,
+        training: bool = False,
     ):
         if shift is not None:
             self.shift = shift
@@ -65,6 +66,12 @@ class FlowMatchScheduler:
         if self.reverse_sigmas:
             self.sigmas = 1 - self.sigmas
         self.timesteps = self.sigmas * self.num_train_timesteps
+        self.training = training
+
+    def get_noise_sigma(self, timestep):
+        timestep = timestep.to(self.timesteps.device) if isinstance(timestep, torch.Tensor) else torch.tensor(timestep, device=self.timesteps.device)
+        timestep_id = torch.argmin((self.timesteps.unsqueeze(-1) - timestep.reshape(1, -1)).abs(), dim=0)
+        return self.sigmas[timestep_id].to(timestep.device)
 
     def step(self, model_output, timestep, sample, to_final: bool = False, **kwargs):
         if isinstance(timestep, torch.Tensor):

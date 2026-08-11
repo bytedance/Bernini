@@ -1,0 +1,12 @@
+sources:
+  - /path/to/t2i_or_t2v_dataset
+  - /path/to/i2i_or_v2v_dataset
+names:
+  - t2v$example_text_to_video
+  - v2v$example_video_editing
+level: sample
+stopping_strategy: never_exhausted
+upstream_sharded: true
+schedule:
+  - schedule_type: const
+    weights: [1.0, 1.0]

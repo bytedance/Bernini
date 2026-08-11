@@ -1,0 +1,99 @@
+model:
+  config_path: configs/bernini_renderer_wan22
+  vae_config_path: null
+  model_config:
+    ema_decay: 0.9999
+    scratch: false
+    # Low-noise expert: keep transformer_2, skip transformer_1.
+    skip_transformer_1: true
+    wan22_base: Wan-AI/Wan2.2-T2V-A14B-Diffusers
+  ops_implementation:
+    attn_implementation: flash_attention_2
+    cross_entropy_loss_implementation: eager
+    rms_norm_implementation: eager
+    swiglu_mlp_implementation: eager
+    rotary_pos_emb_implementation: eager
+
+data:
+  train_path: configs/bernini_renderer_train/data_cfg/example_weighted_multisource.yaml
+  datasets_type: iterable
+  multisource_datasets_type: veomni_weighted_multisource
+  data_type: diffusion
+  max_seq_len: 150000
+  train_size: 100000000000000
+  dyn_bsz_buffer_size: 100
+  dataloader:
+    type: native
+    num_workers: 1
+    prefetch_factor: 2
+    drop_last: true
+  noise_scheduler_config:
+    shift_config:
+      t2i: 3.0
+      t2v: 3.0
+      i2i: 4.0
+      r2i: 4.0
+      r2v: 4.0
+      v2v: 5.0
+      i2v: 5.0
+      vi2v: 5.0
+      vr2v: 5.0
+      vrc2v: 5.0
+      mv2v: 5.0
+    weighting_scheme_config:
+      t2i: logit_normal
+      i2i: logit_normal
+      r2i: logit_normal
+      t2v: mode
+      v2v: mode
+      r2v: mode
+      i2v: mode
+      vi2v: mode
+      vr2v: mode
+      vrc2v: mode
+      mv2v: mode
+    noise_tmin: 0.0
+    noise_tmax: 0.875
+  max_vae_frames: 61
+  text_dropout_rate: 0.1
+  img_dropout_rate: 0.1
+  video_dropout_rate: 0.1
+
+train:
+  init_device: meta
+  dyn_bsz: true
+  global_batch_size: 1
+  micro_batch_size: 1
+  num_train_epochs: 1
+  max_steps: 100000
+  bsz_warmup_ratio: 0.004
+  freeze_modules: ["t5_text_encoder"]
+  use_src_id_rotary_emb: true
+  accelerator:
+    ulysses_size: 8
+    fsdp_config:
+      fsdp_mode: fsdp2
+      mixed_precision:
+        enable: true
+  gradient_checkpointing:
+    enable: true
+  optimizer:
+    type: adamw
+    lr: 1.0e-5
+    lr_start: 7.1e-7
+    lr_warmup_ratio: 0.004
+    lr_decay_style: constant
+    weight_decay: 0.01
+    max_grad_norm: 1.0
+  checkpoint:
+    output_dir: bernini_renderer_train_low
+    manager: dcp
+    save_steps: 1000
+    save_epochs: 0
+    save_async: true
+    save_hf_weights: false
+    load_path: auto
+  wandb:
+    enable: true
+    project: bernini_renderer
+    name: low
