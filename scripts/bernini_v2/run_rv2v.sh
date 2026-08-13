@@ -34,11 +34,11 @@ torchrun --standalone --nproc-per-node "$NPROC_PER_NODE" infer_multi_gpu.py \
     --fps 16 \
     --height 0 \
     --width 0 \
-    --omega_txt 4.0 \
-    --omega_tgt 0.5 \
-    --omega_img 4.5 \
-    --omega_vid 1.75 \
-    --omega_scale 0.75 \
+    --omega_txt 3.6 \
+    --omega_tgt 1.5 \
+    --omega_img 3.0 \
+    --omega_vid 1.5 \
+    --omega_scale 0.5 \
     --planning_step 50 \
     --vit_denoising_step 1 \
     --vit_txt_cfg 1.2 \
