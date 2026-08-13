@@ -40,8 +40,8 @@ Benchmark results across the released models:
 |---|---|---|---|---|---|---|
 | [Bernini-R 1.3B](https://huggingface.co/ByteDance/Bernini-R-1.3B-Diffusers) | 7.74 | 3.65 | 62.18 | 84.69 | 3.15 | 3.21 |
 | [Bernini-R 14B](https://huggingface.co/ByteDance/Bernini-R-Diffusers) | 7.99 | 3.78 | 62.94 | 84.64 | 3.25 | 3.34 |
-| [Bernini 7B+14B](https://huggingface.co/ByteDance/Bernini-Diffusers) | 8.02 | 4.03 | 62.30 | 84.37 | 3.49 | 3.48 |
-| [Bernini-v2 7B+14B](https://huggingface.co/ByteDance/Bernini-Diffusers-v2) | 8.02 | 3.96 | 63.83 | 84.46 | 3.49 | 3.55 |
+| [Bernini 7+14B](https://huggingface.co/ByteDance/Bernini-Diffusers) | 8.02 | 4.03 | 62.30 | 84.37 | 3.49 | 3.48 |
+| [Bernini-v2 7+14B](https://huggingface.co/ByteDance/Bernini-Diffusers-v2) | 8.02 | 3.96 | 63.83 | 84.46 | 3.49 | 3.55 |
 
 ## 🧾 Models
 

@@ -90,6 +90,13 @@ TASK_INPUTS = {
 
 IMAGE_TASKS = {"t2i", "i2i"}
 
+BERNINI_SCRIPT_NEG_PROMPT = (
+    "vivid tones, overexposed, static, blurry details, subtitles, style, artwork, painting, image, "
+    "motionless, overall grayish, worst quality, low quality, JPEG compression artifacts, ugly, incomplete, "
+    "extra fingers, poorly drawn hands, poorly drawn face, deformed, disfigured, malformed limbs, fused fingers, "
+    "still frame, cluttered background, three legs, too many people in the background, walking backwards"
+)
+
 BASE_TASK_DEFAULTS = {
     "max_image_size": 848,
     "num_inference_steps": 40,
@@ -123,7 +130,7 @@ RENDERER_TASK_DEFAULTS = {
     "ads2v": {"guidance_mode": "v2v_apg"},
 }
 
-FULL_BERNINI_TASK_DEFAULTS = {
+BERNINI_V1_TASK_DEFAULTS = {
     "t2i": {
         "guidance_mode": "vae_txt_vit_wapg",
         "num_frames": 1,
@@ -221,20 +228,151 @@ FULL_BERNINI_TASK_DEFAULTS = {
 }
 
 
+BERNINI_V2_TASK_DEFAULTS = {
+    "t2i": {
+        "guidance_mode": "vae_txt_vit_wapg",
+        "num_frames": 1,
+        "max_image_size": 842,
+        "height": 512,
+        "width": 512,
+        "num_inference_steps": 50,
+        "omega_vid": 1.0,
+        "omega_img": 1.0,
+        "omega_txt": 4.0,
+        "omega_tgt": 0.5,
+        "omega_scale": 1.0,
+        "vit_denoising_step": 5,
+    },
+    "i2i": {
+        "guidance_mode": "vae_txt_vit_wapg",
+        "num_frames": 1,
+        "max_image_size": 842,
+        "height": 512,
+        "width": 512,
+        "num_inference_steps": 40,
+        "omega_vid": 1.25,
+        "omega_img": 1.25,
+        "omega_txt": 4.0,
+        "omega_tgt": 0.5,
+        "omega_scale": 0.75,
+        "vit_denoising_step": 5,
+    },
+    "t2v": {
+        "guidance_mode": "vae_txt_vit_wapg",
+        "num_frames": 81,
+        "max_image_size": 842,
+        "height": 480,
+        "width": 848,
+        "num_inference_steps": 50,
+        "omega_vid": 1.0,
+        "omega_img": 1.0,
+        "omega_txt": 5.0,
+        "omega_tgt": 1.2,
+        "omega_scale": 1.0,
+        "planning_step": 50,
+        "vit_denoising_step": 1,
+    },
+    "v2v": {
+        "guidance_mode": "vae_txt_vit_wapg",
+        "num_frames": 81,
+        "max_image_size": 848,
+        "height": 0,
+        "width": 0,
+        "num_inference_steps": 40,
+        "omega_vid": 1.25,
+        "omega_img": 1.25,
+        "omega_txt": 4.0,
+        "omega_tgt": 1.2,
+        "omega_scale": 0.75,
+        "planning_step": 50,
+        "vit_denoising_step": 1,
+        "neg_prompt": BERNINI_SCRIPT_NEG_PROMPT,
+    },
+    "mv2v": {
+        "guidance_mode": "vae_txt_vit_wapg",
+        "num_frames": 81,
+        "max_image_size": 848,
+        "height": 0,
+        "width": 0,
+        "num_inference_steps": 40,
+        "omega_vid": 1.25,
+        "omega_img": 1.25,
+        "omega_txt": 4.0,
+        "omega_tgt": 1.2,
+        "omega_scale": 0.75,
+        "planning_step": 50,
+        "vit_denoising_step": 1,
+        "neg_prompt": BERNINI_SCRIPT_NEG_PROMPT,
+    },
+    "rv2v": {
+        "guidance_mode": "rv2v_wapg",
+        "num_frames": 81,
+        "max_image_size": 848,
+        "height": 0,
+        "width": 0,
+        "num_inference_steps": 40,
+        "omega_vid": 1.75,
+        "omega_img": 4.0,
+        "omega_txt": 5.5,
+        "omega_tgt": 1.5,
+        "omega_scale": 0.75,
+        "planning_step": 50,
+        "vit_denoising_step": 1,
+    },
+    "r2v": {
+        "guidance_mode": "vae_txt_vit_wapg",
+        "num_frames": 81,
+        "max_image_size": 842,
+        "num_inference_steps": 40,
+        "omega_vid": 1.0,
+        "omega_img": 3.0,
+        "omega_txt": 4.5,
+        "omega_tgt": 1.5,
+        "omega_scale": 0.75,
+        "planning_step": 50,
+        "vit_denoising_step": 1,
+        "neg_prompt": BERNINI_SCRIPT_NEG_PROMPT,
+    },
+    "ads2v": {
+        "guidance_mode": "vae_txt_vit_wapg",
+        "num_frames": 81,
+        "max_image_size": 848,
+        "height": 0,
+        "width": 0,
+        "num_inference_steps": 40,
+        "omega_vid": 1.25,
+        "omega_img": 1.25,
+        "omega_txt": 4.0,
+        "omega_tgt": 1.2,
+        "omega_scale": 0.75,
+        "planning_step": 50,
+        "vit_denoising_step": 1,
+    },
+}
+
+
 # Filled in main().
 PIPELINE = None
 DEVICE = None
 SAVE_BASE = None
 REWRITER = None
+FULL_BERNINI_CONFIG = None
 
 
 def _is_full_bernini_pipeline() -> bool:
     return isinstance(PIPELINE, BerniniPipeline)
 
 
+def _is_bernini_v2_config() -> bool:
+    return str(FULL_BERNINI_CONFIG or "").rstrip("/").endswith("Bernini-Diffusers-v2")
+
+
 def _task_defaults(task_type: str) -> dict:
     defaults = dict(BASE_TASK_DEFAULTS)
-    table = FULL_BERNINI_TASK_DEFAULTS if _is_full_bernini_pipeline() else RENDERER_TASK_DEFAULTS
+    if _is_full_bernini_pipeline():
+        table = BERNINI_V2_TASK_DEFAULTS if _is_bernini_v2_config() else BERNINI_V1_TASK_DEFAULTS
+    else:
+        table = RENDERER_TASK_DEFAULTS
     defaults.update(table.get(task_type, {}))
     defaults.setdefault("guidance_mode", GUIDANCE_MODE_BY_TASK.get(task_type))
     return defaults
@@ -335,7 +473,7 @@ def _build_kwargs(
 
     return dict(
         prompt=prompt or "",
-        neg_prompt=DEFAULT_NEG_PROMPT,
+        neg_prompt=task_defaults.get("neg_prompt", DEFAULT_NEG_PROMPT),
         video=video,
         image=image,
         images=images,
@@ -552,6 +690,7 @@ def _on_task_change(task_type: str):
 def create_ui():
     ws = dist.get_world_size() if dist.is_initialized() else 1
     demo_name = "Bernini Demo" if _is_full_bernini_pipeline() else "Bernini-R Demo"
+    initial_defaults = _task_defaults("t2v")
     with gr.Blocks(title=demo_name) as demo:
         gr.Markdown(f"# 🎬 {demo_name}")
         gr.Markdown(
@@ -599,7 +738,7 @@ def create_ui():
                     )
                     guidance_mode = gr.Dropdown(
                         choices=GUIDANCE_MODES,
-                        value=None,
+                        value=initial_defaults.get("guidance_mode"),
                         label="Guidance mode",
                         info="Rewritten whenever the task changes; edit manually if needed",
                     )
@@ -613,34 +752,46 @@ def create_ui():
                 with gr.Group():
                     gr.Markdown("### Basic parameters")
                     with gr.Row():
-                        max_image_size = gr.Slider(256, 1280, value=848, step=16, label="Max image size")
-                        num_frames = gr.Slider(1, 360, value=81, step=4, label="Num frames")
+                        max_image_size = gr.Slider(
+                            256, 1280, value=initial_defaults["max_image_size"], step=16, label="Max image size"
+                        )
+                        num_frames = gr.Slider(1, 360, value=initial_defaults["num_frames"], step=4, label="Num frames")
                     with gr.Row():
-                        num_inference_steps = gr.Slider(10, 50, value=40, step=5, label="Inference steps")
-                        flow_shift = gr.Slider(0.0, 12.0, value=5.0, step=0.5, label="Flow shift")
+                        num_inference_steps = gr.Slider(
+                            10, 50, value=initial_defaults["num_inference_steps"], step=5, label="Inference steps"
+                        )
+                        flow_shift = gr.Slider(
+                            0.0, 12.0, value=initial_defaults["flow_shift"], step=0.5, label="Flow shift"
+                        )
                     with gr.Row():
-                        seed = gr.Number(value=42, precision=0, label="Seed")
-                        fps = gr.Slider(1, 30, value=16, step=1, label="FPS")
+                        seed = gr.Number(value=initial_defaults["seed"], precision=0, label="Seed")
+                        fps = gr.Slider(1, 30, value=initial_defaults["fps"], step=1, label="FPS")
                     with gr.Row():
-                        height = gr.Number(value=480, precision=0, label="Height (text-only tasks)")
-                        width = gr.Number(value=848, precision=0, label="Width (text-only tasks)")
+                        height = gr.Number(value=initial_defaults["height"], precision=0, label="Height (text-only tasks)")
+                        width = gr.Number(value=initial_defaults["width"], precision=0, label="Width (text-only tasks)")
 
                 with gr.Accordion("Guidance (advanced)", open=False):
                     with gr.Row():
-                        omega_vid = gr.Slider(0.0, 10.0, value=1.25, step=0.05, label="omega_vid")
-                        omega_img = gr.Slider(0.0, 10.0, value=4.5, step=0.05, label="omega_img")
-                        omega_txt = gr.Slider(0.0, 10.0, value=4.0, step=0.05, label="omega_txt")
+                        omega_vid = gr.Slider(0.0, 10.0, value=initial_defaults["omega_vid"], step=0.05, label="omega_vid")
+                        omega_img = gr.Slider(0.0, 10.0, value=initial_defaults["omega_img"], step=0.05, label="omega_img")
+                        omega_txt = gr.Slider(0.0, 10.0, value=initial_defaults["omega_txt"], step=0.05, label="omega_txt")
                     with gr.Row():
-                        omega_tgt = gr.Slider(0.0, 10.0, value=0.5, step=0.05, label="omega_tgt")
-                        omega_scale = gr.Slider(0.0, 2.0, value=0.8, step=0.05, label="omega_scale")
-                        eta = gr.Slider(0.0, 2.0, value=0.5, step=0.05, label="eta")
+                        omega_tgt = gr.Slider(0.0, 10.0, value=initial_defaults["omega_tgt"], step=0.05, label="omega_tgt")
+                        omega_scale = gr.Slider(
+                            0.0, 2.0, value=initial_defaults["omega_scale"], step=0.05, label="omega_scale"
+                        )
+                        eta = gr.Slider(0.0, 2.0, value=initial_defaults["eta"], step=0.05, label="eta")
                     with gr.Row():
-                        momentum = gr.Slider(-2.0, 2.0, value=0.0, step=0.05, label="momentum")
-                        planning_step = gr.Slider(1, 50, value=25, step=1, label="planning_step")
-                        vit_denoising_step = gr.Slider(1, 20, value=5, step=1, label="vit_denoising_step")
+                        momentum = gr.Slider(-2.0, 2.0, value=initial_defaults["momentum"], step=0.05, label="momentum")
+                        planning_step = gr.Slider(
+                            1, 50, value=initial_defaults["planning_step"], step=1, label="planning_step"
+                        )
+                        vit_denoising_step = gr.Slider(
+                            1, 20, value=initial_defaults["vit_denoising_step"], step=1, label="vit_denoising_step"
+                        )
                     with gr.Row():
-                        vit_txt_cfg = gr.Slider(0.0, 3.0, value=1.2, step=0.05, label="vit_txt_cfg")
-                        vit_img_cfg = gr.Slider(0.0, 3.0, value=1.0, step=0.05, label="vit_img_cfg")
+                        vit_txt_cfg = gr.Slider(0.0, 3.0, value=initial_defaults["vit_txt_cfg"], step=0.05, label="vit_txt_cfg")
+                        vit_img_cfg = gr.Slider(0.0, 3.0, value=initial_defaults["vit_img_cfg"], step=0.05, label="vit_img_cfg")
 
                 generate_btn = gr.Button("Generate", variant="primary", size="lg")
 
@@ -712,9 +863,10 @@ def parse_args():
 
 
 def main():
-    global PIPELINE, DEVICE, SAVE_BASE, REWRITER
+    global PIPELINE, DEVICE, SAVE_BASE, REWRITER, FULL_BERNINI_CONFIG
 
     args = parse_args()
+    FULL_BERNINI_CONFIG = args.config
     logging.basicConfig(
         level=logging.INFO,
         format="[%(asctime)s] %(name)s: %(message)s",
