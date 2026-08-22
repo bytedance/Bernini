@@ -127,34 +127,38 @@ uv run python tools/preprocess_data.py \
 
 ### Entry script
 
-`scripts/train_bernini_renderer.sh` invokes the training entrypoint
+`scripts/bernini_r_train/train_bernini_renderer.sh` invokes the training entrypoint
 `tasks/bernini_renderer/train_bernini_renderer.py` via `torchrun`. By default it uses
-`configs/bernini_renderer/train_cfg/bernini_renderer_high.yaml` and forwards extra
-arguments (`"$@"`) to the VeOmni argument parser.
+`configs/bernini_renderer_train/train_cfg/bernini_renderer_high.yaml`. An optional first
+positional argument selects another training config; any remaining arguments are
+forwarded to the VeOmni argument parser.
 
 ```bash
-bash scripts/train_bernini_renderer.sh
+bash scripts/bernini_r_train/train_bernini_renderer.sh
 # Override config items, for example:
-bash scripts/train_bernini_renderer.sh --train.max_steps 1000
+bash scripts/bernini_r_train/train_bernini_renderer.sh --train.max_steps 1000
 # Switch to the low-noise expert:
-bash scripts/train_bernini_renderer.sh \
-  configs/bernini_renderer/train_cfg/bernini_renderer_low.yaml
+bash scripts/bernini_r_train/train_bernini_renderer.sh \
+  configs/bernini_renderer_train/train_cfg/bernini_renderer_low.yaml
 ```
 
-The script automatically infers the distributed topology from environment variables:
+Run the script from the repository root. Its distributed topology is configured by
+environment variables:
 
-- `NNODES` / `NPROC_PER_NODE` / `NODE_RANK` / `MASTER_ADDR` / `MASTER_PORT`; if not set
-  it falls back to a single host with the visible GPU count;
-- It sets `NCCL_P2P_LEVEL=NVL` and similar parameters, and clears network-plugin
-  related environment variables that could interfere with NCCL initialization;
-- Before launching, it prepends `VeOmni/` and the project root to `PYTHONPATH`.
+- `NNODES`, `NPROC_PER_NODE`, and `NODE_RANK` default to `1`, `8`, and `0`;
+- `MASTER_ADDR` and `MASTER_PORT` default to `127.0.0.1` and `29501`;
+- it clears `NCCL_NET_PLUGIN`, `NCCL_NET_GCP_FASTRAK`, and
+  `NCCL_NET_PLUGIN_PATH`, then checks CUDA availability and PyTorch FSDP2 support
+  before launching `torchrun`.
 
-If you manage the environment with `uv`, you can prepend `uv run` to the script or first
-run `source .venv/bin/activate`.
+Override the topology variables explicitly when the machine does not have eight visible
+GPUs or when launching across multiple nodes. If you manage the environment with `uv`,
+run `uv run bash scripts/bernini_r_train/train_bernini_renderer.sh` or first activate
+the virtual environment.
 
 ### Config files
 
-The training configs live under `configs/bernini_renderer/`:
+The training configs live under `configs/bernini_renderer_train/`:
 
 - `train_cfg/bernini_renderer_high.yaml`: High-noise expert
   (`skip_transformer_2: true`, `noise_tmin/tmax = 0.875/1.0`,
@@ -162,7 +166,6 @@ The training configs live under `configs/bernini_renderer/`:
 - `train_cfg/bernini_renderer_low.yaml`: Low-noise expert
   (`skip_transformer_1: true`, `noise_tmin/tmax = 0.0/0.875`,
   `output_dir: bernini_renderer_train_low`);
-- `train_cfg/bernini_renderer_test.yaml`: minimal config used for smoke testing;
 - `data_cfg/example_weighted_multisource.yaml`: example multi-source weighted data
   config. The `name` field uses the `<task>$<dataset>` convention to identify the task
   type (`t2i`, `t2v`, `i2i`, `r2i`, `r2v`, `v2v`, `i2v`, `vi2v`, `vr2v`, `vrc2v`,
