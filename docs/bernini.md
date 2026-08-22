@@ -57,8 +57,9 @@ export BERNINI_CONFIG=/path/to/Bernini-Diffusers
 
 The recommended way to run Bernini is through the ready-to-run launch scripts
 under [`scripts/bernini/`](../scripts/bernini/). These scripts wrap the
-single-GPU image path and the multi-GPU video path with the appropriate default
-case files, sampling hyperparameters, and Ulysses sequence-parallel settings.
+image and video paths in configurable multi-process launches with the
+appropriate default case files, sampling hyperparameters, and Ulysses
+sequence-parallel settings.
 
 Inputs are described by case files under
 [`assets/testcases/`](../assets/testcases/); see the
