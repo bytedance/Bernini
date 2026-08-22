@@ -56,16 +56,18 @@ hf download ByteDance/Bernini-R \
 
 Load the renderer config from
 [`configs/bernini_renderer_wan22`](../configs/bernini_renderer_wan22/config.json)
-and pass both checkpoint paths (replace the file names with the actual
-safetensors in your download):
+and pass both downloaded checkpoint directories:
 
 ```bash
 torchrun --nproc-per-node 8 infer_multi_gpu.py \
     --config configs/bernini_renderer_wan22 \
-    --high_noise_ckpt pretrained_models/Bernini-R/<high-noise>.safetensors \
-    --low_noise_ckpt pretrained_models/Bernini-R/<low-noise>.safetensors \
+    --high_noise_ckpt pretrained_models/Bernini-R/bernini_renderer_high \
+    --low_noise_ckpt pretrained_models/Bernini-R/bernini_renderer_low \
     --case assets/testcases/t2v/t2v.json
 ```
+
+Each directory contains sharded weights and a `model.safetensors.index.json`;
+the index file itself can also be passed instead of the directory.
 
 A matching config for the Wan2.1-1.3B base is provided at
 [`configs/bernini_renderer_wan21_1p3b`](../configs/bernini_renderer_wan21_1p3b/config.json).
