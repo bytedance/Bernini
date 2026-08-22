@@ -26,6 +26,12 @@ MASTER_ADDR=${MASTER_ADDR:-127.0.0.1}
 MASTER_PORT=${MASTER_PORT:-29501}
 MASTER_PORT=${MASTER_PORT%%,*}
 
+TRAIN_CONFIG=configs/bernini_renderer_train/train_cfg/bernini_renderer_high.yaml
+if [[ $# -gt 0 && "$1" != -* ]]; then
+  TRAIN_CONFIG=$1
+  shift
+fi
+
 python - <<'PY'
 import torch
 import torch.distributed.fsdp as fsdp
@@ -46,5 +52,5 @@ torchrun \
   --master-addr="$MASTER_ADDR" \
   --master-port="$MASTER_PORT" \
   tasks/bernini_renderer/train_bernini_renderer.py \
-  configs/bernini_renderer_train/train_cfg/bernini_renderer_high.yaml \
+  "$TRAIN_CONFIG" \
   "$@"
