@@ -8,7 +8,7 @@ instructions and plans semantic changes in latent space before diffusion
 rendering, which gives stronger instruction following on complex
 generation/editing requests than the renderer-only [Bernini-R](bernini_r.md).
 
-｜ Checkpoint | Renderer base | Planner base | Notes |
+| Checkpoint | Renderer base | Planner base | Notes |
 | ------- | ------- | ------- | ------- |
 | [`ByteDance/Bernini-Diffusers`](https://huggingface.co/ByteDance/Bernini-Diffusers) | Wan2.2-T2V-A14B | Qwen2.5-VL-7B-Instruct | Cotrain starts with a near-zero initialized connector. |
 | [`ByteDance/Bernini-Diffusers-v2`](https://huggingface.co/ByteDance/Bernini-Diffusers-v2) | Wan2.2-T2V-A14B | Qwen2.5-VL-7B-Instruct | Warm up the connector for thousands of steps before cotraining. |
