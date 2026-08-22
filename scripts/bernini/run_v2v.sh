@@ -16,9 +16,18 @@ set -euo pipefail
 export NCCL_NET_PLUGIN=none
 export NCCL_DEBUG=${NCCL_DEBUG:-WARN}
 export FSDP=1
-CASE_PATH=${CASE_PATH:-assets/testcases/v2v/v2v_case3.json}
 
-for CASE_PATH in assets/testcases/v2v/v2v_case1.json assets/testcases/v2v/v2v_case2.json assets/testcases/v2v/v2v_case3.json;
+if [[ -n "${CASE_PATH:-}" ]]; then
+    CASE_PATHS=("$CASE_PATH")
+else
+    CASE_PATHS=(
+        assets/testcases/v2v/v2v_case1.json
+        assets/testcases/v2v/v2v_case2.json
+        assets/testcases/v2v/v2v_case3.json
+    )
+fi
+
+for CASE_PATH in "${CASE_PATHS[@]}";
 do
 
 NPROC_PER_NODE=${NPROC_PER_NODE:-8}
