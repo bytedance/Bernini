@@ -368,7 +368,7 @@ def main():
         "--shard-size",
         type=int,
         default=5_000_000_000,
-        help="Maximum shard size in bytes (default: 2GB)",
+        help="Maximum shard size in bytes (default: 5GB)",
     )
     parser.add_argument(
         "--save-dtype",
